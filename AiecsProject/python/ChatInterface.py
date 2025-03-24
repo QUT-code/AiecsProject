@@ -9,6 +9,7 @@ import base64
 import sys
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+import io
 
 # Server configuration
 HOST = '3.107.181.28'  # Replace with your server's public IP
@@ -26,12 +27,12 @@ client_socket.connect((HOST, PORT))
 
 # Function to encrypt data using AES
 def encrypt_data(data):
-    cipher = AES.new(KEY, AES.MODE_ECB)
+    cipher = AES.new(KEY, AES.MODE_CBC)  # Changed to AES CBC mode
     return cipher.encrypt(pad(data.encode(), AES.block_size))
 
 # Function to decrypt data using AES
 def decrypt_data(encrypted_data):
-    cipher = AES.new(KEY, AES.MODE_ECB)
+    cipher = AES.new(KEY, AES.MODE_CBC)
     return unpad(cipher.decrypt(encrypted_data), AES.block_size).decode()
 
 # Function to send messages
@@ -56,8 +57,10 @@ def send_file():
         file_name = os.path.basename(file_path)
         with open(file_path, "rb") as file:
             file_data = file.read()
+
         # Encrypt the file data
         encrypted_file_data = encrypt_data(base64.b64encode(file_data).decode())
+
         try:
             # Send the encrypted file
             client_socket.send(f"file:{username}:{file_name}:{base64.b64encode(encrypted_file_data).decode()}".encode())
@@ -106,7 +109,7 @@ def display_message(message, timestamp, sender):
 def display_image(image_data, prefix, timestamp, sender):
     try:
         # Convert image data to a PhotoImage object
-        image = Image.open(image_data)
+        image = Image.open(io.BytesIO(image_data))  # Use io.BytesIO to read binary data
         image = image.resize((200, 200), Image.ANTIALIAS)  # Resize image for display
         photo = ImageTk.PhotoImage(image)
 
